@@ -39,7 +39,7 @@ class _AudioTrimmerState extends State<AudioTrimmer> {
             try {
               print("taking image");
               result = await FilePicker.platform.pickFiles(
-                type: FileType.audio,
+                // type: FileType.audio,
                 allowCompression: false,
               );
             } finally {
@@ -91,6 +91,7 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
   void initState() {
     super.initState();
     _loadAudio();
+    print(_startValue);
   }
 
   void _loadAudio() async {
@@ -177,8 +178,8 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                             viewerHeight: 100,
                             viewerWidth: MediaQuery.of(context).size.width,
                             durationStyle: DurationStyle.FORMAT_MM_SS,
-                            backgroundColor: Theme.of(context).primaryColor,
-                            barColor: Colors.white,
+                            backgroundColor: Colors.grey[400],
+                            barColor: const Color.fromARGB(255, 0, 0, 0),
                             durationTextStyle: TextStyle(
                                 color: Theme.of(context).primaryColor),
                             allowAudioSelection: true,
@@ -201,27 +202,203 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                           ),
                         ),
                       ),
-                      TextButton(
-                        child: _isPlaying
-                            ? Icon(
-                                Icons.pause,
-                                size: 80.0,
-                                color: Theme.of(context).primaryColor,
-                              )
-                            : Icon(
-                                Icons.play_arrow,
-                                size: 80.0,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                        onPressed: () async {
-                          bool playbackState =
-                              await _trimmer.audioPlaybackControl(
-                            startValue: _startValue,
-                            endValue: _endValue,
-                          );
-                          setState(() => _isPlaying = playbackState);
-                        },
+                      SizedBox(
+                        height: 20,
                       ),
+                      // start and end time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Start Time TextField with increment and decrement buttons
+                          Column(
+                            children: [
+                              Text('Start Time'), // Label
+                              Row(
+                                children: [
+                                  // Decrement Button
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.arrow_downward,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        // Decrease the start time value
+                                        _startValue = (_startValue - 1.0)
+                                            .clamp(0.0, _endValue);
+                                      });
+                                    },
+                                  ),
+                                  // Time Input Field
+                                  Container(
+                                    width: 60, // Adjust width as needed
+                                    child: TextField(
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      controller: TextEditingController(
+                                          text: _startValue.toStringAsFixed(2)),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          // Update the start time value when input changes
+                                          _startValue =
+                                              double.tryParse(value) ??
+                                                  _startValue;
+                                          _startValue =
+                                              _startValue.clamp(0.0, _endValue);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  // Increment Button
+                                  IconButton(
+                                    icon: Icon(Icons.arrow_upward),
+                                    onPressed: () {
+                                      setState(() {
+                                        // Increase the start time value
+                                        _startValue = (_startValue + 1.0)
+                                            .clamp(0.0, _endValue);
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          Column(
+                            children: [
+                              Text('End Time'), // Label
+                              Row(
+                                children: [
+                                  // Decrement Button
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.arrow_downward,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        // Decrease the start time value
+                                        _startValue = (_startValue - 1.0)
+                                            .clamp(0.0, _endValue);
+                                      });
+                                    },
+                                  ),
+                                  // Time Input Field
+                                  Container(
+                                    width: 60, // Adjust width as needed
+                                    child: TextField(
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      controller: TextEditingController(
+                                          text: _startValue.toStringAsFixed(2)),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          // Update the start time value when input changes
+                                          _startValue =
+                                              double.tryParse(value) ??
+                                                  _startValue;
+                                          _startValue =
+                                              _startValue.clamp(0.0, _endValue);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  // Increment Button
+                                  IconButton(
+                                    icon: Icon(Icons.arrow_upward),
+                                    onPressed: () {
+                                      setState(() {
+                                        // Increase the start time value
+                                        _startValue = (_startValue + 1.0)
+                                            .clamp(0.0, _endValue);
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Play/Pause Button
+                        ],
+                      ),
+                      // audio duration and pause start button
+                      SizedBox(
+                        height: 20,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Start Time TextField with increment and decrement buttons
+                          Column(
+                            children: [
+                              Text('Duration'), // Label
+                              Row(
+                                children: [
+                                  // Decrement Button
+                                  // Time Input Field
+                                  SizedBox(
+                                    width: 30,
+                                  ),
+                                  Container(
+                                    width: 60, // Adjust width as needed
+                                    child: TextField(
+                                      textAlign: TextAlign.center,
+                                      keyboardType: TextInputType.number,
+                                      controller: TextEditingController(
+                                          text: _startValue.toStringAsFixed(2)),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 30,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              Text(!_isPlaying ? 'Play' : 'Pause'), // Label
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 30,
+                                  ),
+                                  TextButton(
+                                    child: _isPlaying
+                                        ? Icon(
+                                            Icons.pause,
+                                            size: 30.0,
+                                            color:
+                                                Theme.of(context).primaryColor,
+                                          )
+                                        : Icon(
+                                            Icons.play_arrow,
+                                            size: 30.0,
+                                            color:
+                                                Theme.of(context).primaryColor,
+                                          ),
+                                    onPressed: () async {
+                                      bool playbackState =
+                                          await _trimmer.audioPlaybackControl(
+                                        startValue: _startValue,
+                                        endValue: _endValue,
+                                      );
+                                      setState(
+                                          () => _isPlaying = playbackState);
+                                    },
+                                  ),
+                                  SizedBox(
+                                    width: 30,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Play/Pause Button
+                        ],
+                      ),
+
                       Visibility(
                         visible: _progressVisibility,
                         child: LinearProgressIndicator(
@@ -229,11 +406,28 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                               Theme.of(context).primaryColor.withOpacity(0.5),
                         ),
                       ),
-                      ElevatedButton(
-                        onPressed: !_progressVisibility && !_isSaving
-                            ? () => _saveAudio()
-                            : null,
-                        child: const Text("SAVE"),
+                      SizedBox(
+                        height: 30,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text("Back"),
+                          ),
+                          SizedBox(
+                            width: 30,
+                          ),
+                          ElevatedButton(
+                            onPressed: !_progressVisibility && !_isSaving
+                                ? () => _saveAudio()
+                                : null,
+                            child: const Text("SAVE"),
+                          ),
+                        ],
                       ),
                     ],
                   ),
