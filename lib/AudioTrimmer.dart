@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:easy_audio_trimmer/easy_audio_trimmer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:video_player/video_player.dart';
 
 void main() {
   runApp(MaterialApp(home: AudioTrimmer()));
@@ -13,7 +15,10 @@ class AudioTrimmer extends StatefulWidget {
 }
 
 class _AudioTrimmerState extends State<AudioTrimmer> {
+  late VideoPlayerController _controller;
+  Duration? _duration;
   bool isPickingFile = false;
+  File? file;
 
   @override
   Widget build(BuildContext context) {
@@ -25,42 +30,134 @@ class _AudioTrimmerState extends State<AudioTrimmer> {
         ),
         backgroundColor: Colors.blue,
       ),
-      body: Center(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade50),
-          onPressed: () async {
-            print(isPickingFile);
-            if (isPickingFile) return;
-            setState(() {
-              isPickingFile = true;
-            });
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Text(
+                  "Selected Music : ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Expanded(
+                  child: Text(
+                    file == null ? "No Music Selected" : p.basename(file!.path),
+                    overflow: TextOverflow
+                        .ellipsis, // This will add "..." if the text is too long
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            // Row(
+            //   children: [
+            //     Text(
+            //       "Duration : ",
+            //       style: TextStyle(fontWeight: FontWeight.bold),
+            //     ),
+            //     Expanded(
+            //       child: Text(
+            //         file == null
+            //             ? "No Music Selected"
+            //             : "${_duration!.inSeconds}",
+            //         overflow: TextOverflow
+            //             .ellipsis, // This will add "..." if the text is too long
+            //       ),
+            //     ),
 
-            FilePickerResult? result;
-            try {
-              print("taking image");
-              result = await FilePicker.platform.pickFiles(
-                // type: FileType.audio,
-                allowCompression: false,
-              );
-            } finally {
-              setState(() {
-                isPickingFile = false;
-              });
-            }
+            //   ],
+            // ),
 
-            if (result != null) {
-              File file = File(result.files.single.path!);
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) {
-                  return AudioTrimmerView(file);
-                }),
-              );
-            }
-          },
-          child: const Text(
-            "Select File",
-            style: TextStyle(color: Colors.blue),
-          ),
+            // SizedBox(
+            //   height: 20,
+            // ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade50),
+                  onPressed: () async {
+                    print(isPickingFile);
+                    if (isPickingFile) return;
+                    setState(() {
+                      isPickingFile = true;
+                    });
+
+                    FilePickerResult? result;
+                    try {
+                      result = await FilePicker.platform.pickFiles(
+                        // type: FileType.audio,
+                        allowCompression: false,
+                      );
+                    } finally {
+                      setState(() {
+                        isPickingFile = false;
+                      });
+                    }
+
+                    if (result != null) {
+                      file = File(result.files.single.path!);
+                      // _controller = VideoPlayerController.file(file!);
+                      // setState(() {
+                      //   _duration = _controller.value.duration;
+                      // });
+                      // Navigator.of(context).push(
+                      //   MaterialPageRoute(builder: (context) {
+                      //     return AudioTrimmerView(file);
+                      //   }),
+                      // );
+                    }
+                  },
+                  child: const Text(
+                    "Select File",
+                    style: TextStyle(color: Colors.blue),
+                  ),
+                ),
+                if (file != null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade50,
+                    ),
+                    onPressed: () async {
+                      print("File path : ${file!.path}");
+                      final croppedFilePath = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AudioTrimmerView(file!),
+                        ),
+                      );
+
+                      if (croppedFilePath != null) {
+                        // Convert the path string to a File object
+                        File croppedFile = File(croppedFilePath);
+
+                        print("Cropped File Path: $croppedFilePath");
+
+                        // Update the file variable
+                        setState(() {
+                          file = croppedFile; // Ensure `file` is of type `File`
+                        });
+                        // _controller = VideoPlayerController.file(croppedFile);
+                        // setState(() {
+                        //   _duration = _controller.value.duration;
+                        // });
+                      } else {
+                        print("No cropped file path returned");
+                      }
+                    },
+                    child: const Text(
+                      "Crop File",
+                      style: TextStyle(color: Color.fromARGB(255, 2, 132, 28)),
+                    ),
+                  )
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -91,7 +188,6 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
   void initState() {
     super.initState();
     _loadAudio();
-    print(_startValue);
   }
 
   void _loadAudio() async {
@@ -129,12 +225,23 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
           _progressVisibility = false;
         });
         debugPrint('OUTPUT PATH: $outputPath');
+        Navigator.pop(context, outputPath);
       },
     );
   }
 
+  String formatDuration(double milliseconds) {
+    double totalSeconds = milliseconds / 1000.0;
+    int minutes = (totalSeconds ~/ 60).toInt();
+    int seconds = (totalSeconds % 60).toInt();
+
+    return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
+    print("start value : $_startValue");
+    print("end value : $_endValue");
     return WillPopScope(
       onWillPop: () async {
         if (Navigator.of(context).userGestureInProgress) {
@@ -192,8 +299,16 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                             ),
                             areaProperties:
                                 TrimAreaProperties.edgeBlur(blurEdges: true),
-                            onChangeStart: (value) => _startValue = value,
-                            onChangeEnd: (value) => _endValue = value,
+                            onChangeStart: (value) {
+                              setState(() {
+                                _startValue = value;
+                              });
+                            },
+                            onChangeEnd: (value) {
+                              setState(() {
+                                _endValue = value;
+                              });
+                            },
                             onChangePlaybackState: (value) {
                               if (mounted) {
                                 setState(() => _isPlaying = value);
@@ -223,6 +338,7 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                     onPressed: () {
                                       setState(() {
                                         // Decrease the start time value
+
                                         _startValue = (_startValue - 1.0)
                                             .clamp(0.0, _endValue);
                                       });
@@ -235,7 +351,8 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                       textAlign: TextAlign.center,
                                       keyboardType: TextInputType.number,
                                       controller: TextEditingController(
-                                          text: _startValue.toStringAsFixed(2)),
+                                          text: formatDuration(_startValue)),
+                                      // text: _endValue.toStringAsFixed(2),
                                       onChanged: (value) {
                                         setState(() {
                                           // Update the start time value when input changes
@@ -277,7 +394,7 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                     onPressed: () {
                                       setState(() {
                                         // Decrease the start time value
-                                        _startValue = (_startValue - 1.0)
+                                        _endValue = (_endValue - 1.0)
                                             .clamp(0.0, _endValue);
                                       });
                                     },
@@ -289,15 +406,14 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                       textAlign: TextAlign.center,
                                       keyboardType: TextInputType.number,
                                       controller: TextEditingController(
-                                          text: _startValue.toStringAsFixed(2)),
+                                          text: formatDuration(_endValue)),
                                       onChanged: (value) {
                                         setState(() {
                                           // Update the start time value when input changes
-                                          _startValue =
-                                              double.tryParse(value) ??
-                                                  _startValue;
-                                          _startValue =
-                                              _startValue.clamp(0.0, _endValue);
+                                          _endValue = double.tryParse(value) ??
+                                              _endValue;
+                                          _endValue =
+                                              _endValue.clamp(0.0, _endValue);
                                         });
                                       },
                                     ),
@@ -308,7 +424,7 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                     onPressed: () {
                                       setState(() {
                                         // Increase the start time value
-                                        _startValue = (_startValue + 1.0)
+                                        _endValue = (_endValue + 1.0)
                                             .clamp(0.0, _endValue);
                                       });
                                     },
@@ -345,7 +461,10 @@ class _AudioTrimmerViewState extends State<AudioTrimmerView> {
                                       textAlign: TextAlign.center,
                                       keyboardType: TextInputType.number,
                                       controller: TextEditingController(
-                                          text: _startValue.toStringAsFixed(2)),
+                                        // text: _startValue.toStringAsFixed(2),
+                                        text: formatDuration(
+                                            _endValue - _startValue),
+                                      ),
                                     ),
                                   ),
                                   SizedBox(
